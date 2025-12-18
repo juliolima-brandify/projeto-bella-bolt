@@ -73,12 +73,23 @@ export function VisionBodyApp() {
     setIsModalOpen(true);
   };
   const handleLeadSubmit = async (leadData: LeadData) => {
-    setIsProcessing(true);
-    setIsModalOpen(false);
+    // Prevent multiple submissions
+    if (isProcessing) {
+      return;
+    }
+
     try {
+      setIsProcessing(true);
+      setIsModalOpen(false);
+
       const weight = Number(formData.weight);
       let height = Number(formData.height);
       const age = Number(formData.age);
+
+      // Validate numeric inputs
+      if (isNaN(weight) || isNaN(height) || isNaN(age) || weight <= 0 || height <= 0 || age <= 0) {
+        throw new Error("Dados inválidos. Por favor, verifique os valores informados.");
+      }
 
       // Convert height from meters to cm if needed (if user entered 1.65 instead of 165)
       if (height < 3) {
@@ -111,7 +122,7 @@ export function VisionBodyApp() {
       });
       if (insertError) {
         console.error("Error saving lead:", insertError);
-        throw new Error("Erro ao salvar seus dados");
+        throw new Error("Erro ao salvar seus dados. Por favor, tente novamente.");
       }
 
       // Handle image transformation or skip if no photo
@@ -161,6 +172,7 @@ export function VisionBodyApp() {
     } catch (error) {
       console.error("Error:", error);
       setIsProcessing(false);
+      setIsModalOpen(true);
       toast({
         title: "Erro ao processar",
         description: error instanceof Error ? error.message : "Tente novamente em alguns instantes.",

@@ -94,6 +94,9 @@ export function LeadCaptureModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) {
+      return;
+    }
     if (validateForm()) {
       onSubmit(formData);
     }
@@ -101,7 +104,7 @@ export function LeadCaptureModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md !bg-card border-2 border-serene-sand shadow-2xl">
+      <DialogContent className="sm:max-w-md bg-white dark:bg-card border-2 border-serene-sand shadow-2xl opacity-100">
         <DialogHeader>
           <DialogTitle className="font-heading text-2xl text-primary text-center">
             Quase lá!
