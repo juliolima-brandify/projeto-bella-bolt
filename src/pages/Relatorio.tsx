@@ -4,7 +4,6 @@ import { ChevronDown, Download, CheckCircle, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandHeader } from "@/components/BrandHeader";
 import { OrganicShapes } from "@/components/OrganicShapes";
-import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
 import { BMIReport } from "@/components/BMIReport";
 import { VideoEmbed } from "@/components/VideoEmbed";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
@@ -84,9 +83,9 @@ export default function Relatorio() {
   };
 
   const handleDownloadImage = () => {
-    if (!reportData.transformedImage) return;
+    if (!reportData.originalImage) return;
     const link = document.createElement("a");
-    link.href = reportData.transformedImage;
+    link.href = reportData.originalImage;
     link.download = `raio-x-${reportData.name.split(" ")[0]}.png`;
     document.body.appendChild(link);
     link.click();
@@ -101,8 +100,8 @@ export default function Relatorio() {
     }
   };
 
-  // Check if photos exist (either through flag or by checking the image data)
-  const hasPhoto = (reportData.hasPhoto !== false) && reportData.originalImage && reportData.transformedImage;
+  // Check if photo exists
+  const hasPhoto = (reportData.hasPhoto !== false) && reportData.originalImage;
 
   const bmiClassification = getBMIClassification(reportData.bmiCurrent);
   const selectedSymptoms = reportData.symptoms || [];
@@ -166,32 +165,27 @@ export default function Relatorio() {
           </div>
         </section>
 
-        {/* Image Comparison Section - Only show if photo exists */}
+        {/* Image Section - Only show if photo exists */}
         {hasPhoto && (
           <section className="px-6 pb-12">
-            <div className="max-w-3xl mx-auto">
-              {/* Side by side view only */}
+            <div className="max-w-2xl mx-auto">
               <div className="animate-fade-up-delay-2">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="relative">
-                    <img
-                      src={reportData.originalImage!}
-                      alt="Foto atual"
-                      className="w-full rounded-2xl shadow-soft object-cover aspect-[3/4]"
-                    />
-                    <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur-sm text-sm font-medium text-primary">
-                      IMC {reportData.bmiCurrent.toFixed(1)}
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <img
-                      src={reportData.transformedImage!}
-                      alt="Projeção ideal"
-                      className="w-full rounded-2xl shadow-soft object-cover aspect-[3/4]"
-                    />
-                    <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full bg-primary/90 backdrop-blur-sm text-sm font-medium text-primary-foreground">
-                      IMC 22
-                    </div>
+                <div className="text-center mb-4">
+                  <h2 className="font-heading text-xl text-primary mb-2">
+                    Sua Foto de Referência
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Ponto de partida para sua transformação
+                  </p>
+                </div>
+                <div className="relative max-w-md mx-auto">
+                  <img
+                    src={reportData.originalImage!}
+                    alt="Foto atual"
+                    className="w-full rounded-2xl shadow-soft object-cover aspect-[3/4]"
+                  />
+                  <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur-sm text-sm font-medium text-primary">
+                    IMC {reportData.bmiCurrent.toFixed(1)}
                   </div>
                 </div>
               </div>

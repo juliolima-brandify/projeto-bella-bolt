@@ -69,30 +69,25 @@ export async function generatePDF(reportData: ReportData): Promise<void> {
   yPosition += 20;
 
   // Images section (if available)
-  if (reportData.originalImage && reportData.transformedImage) {
+  if (reportData.originalImage) {
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Projeção Visual', 20, yPosition);
+    pdf.text('Foto de Referência', 20, yPosition);
     yPosition += 8;
 
     const imgWidth = 60;
     const imgHeight = 80;
-    const spacing = 10;
-    const startX = (pageWidth - (imgWidth * 2 + spacing)) / 2;
+    const startX = (pageWidth - imgWidth) / 2;
 
     try {
-      // Before image
+      // Original image
       pdf.addImage(reportData.originalImage, 'JPEG', startX, yPosition, imgWidth, imgHeight);
       pdf.setFontSize(9);
-      pdf.text('Atual', startX + imgWidth / 2, yPosition + imgHeight + 5, { align: 'center' });
-
-      // After image
-      pdf.addImage(reportData.transformedImage, 'JPEG', startX + imgWidth + spacing, yPosition, imgWidth, imgHeight);
-      pdf.text('Projeção', startX + imgWidth + spacing + imgWidth / 2, yPosition + imgHeight + 5, { align: 'center' });
+      pdf.text('Foto Atual', startX + imgWidth / 2, yPosition + imgHeight + 5, { align: 'center' });
 
       yPosition += imgHeight + 15;
     } catch (error) {
-      console.error('Error adding images to PDF:', error);
+      console.error('Error adding image to PDF:', error);
       yPosition += 10;
     }
   }
