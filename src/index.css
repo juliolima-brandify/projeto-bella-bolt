@@ -1,3 +1,255 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand Colors - Vision Body by Dra. Izabella Brasão */
+    --background: 40 12% 89%; /* Soft Cream #E6E3DC */
+    --foreground: 20 15% 18%; /* Deep Coffee #362D28 */
+
+    --card: 40 20% 98%; /* Surface White #FAFAF9 */
+    --card-foreground: 20 15% 18%;
+
+    --popover: 40 20% 98%;
+    --popover-foreground: 20 15% 18%;
+
+    --primary: 20 15% 18%; /* Deep Coffee #362D28 */
+    --primary-foreground: 40 20% 98%;
+
+    --secondary: 26 10% 39%; /* Cozy Brown #6F6356 */
+    --secondary-foreground: 40 20% 98%;
+
+    --muted: 40 8% 70%; /* Serene Sand #ABA597 */
+    --muted-foreground: 26 10% 39%;
+
+    --accent: 40 8% 70%; /* Serene Sand #ABA597 */
+    --accent-foreground: 20 15% 18%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 40 20% 98%;
+
+    --border: 26 10% 39%;
+    --input: 40 8% 70%;
+    --ring: 20 15% 18%;
+
+    --radius: 0.75rem;
+
+    /* Custom Brand Tokens */
+    --deep-coffee: 20 15% 18%;
+    --cozy-brown: 26 10% 39%;
+    --serene-sand: 40 8% 70%;
+    --soft-cream: 40 12% 89%;
+    --surface: 40 20% 98%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(40 12% 89%) 0%, hsl(40 20% 95%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(40 20% 98%) 0%, hsl(40 15% 95%) 100%);
+    --gradient-organic: radial-gradient(circle at 30% 70%, hsl(40 8% 70% / 0.3) 0%, transparent 50%);
+
+    /* Shadows */
+    --shadow-soft: 0 4px 24px -4px hsl(20 15% 18% / 0.08);
+    --shadow-elevated: 0 12px 40px -8px hsl(20 15% 18% / 0.12);
+    --shadow-glow: 0 0 60px hsl(40 8% 70% / 0.4);
+
+    /* Typography */
+    --font-heading: 'Playfair Display', serif;
+    --font-body: 'Montserrat', sans-serif;
+    --letter-spacing-heading: -0.04em;
+
+    /* Sidebar (keeping for compatibility) */
+    --sidebar-background: 40 20% 98%;
+    --sidebar-foreground: 20 15% 18%;
+    --sidebar-primary: 20 15% 18%;
+    --sidebar-primary-foreground: 40 20% 98%;
+    --sidebar-accent: 40 8% 70%;
+    --sidebar-accent-foreground: 20 15% 18%;
+    --sidebar-border: 40 8% 70%;
+    --sidebar-ring: 20 15% 18%;
+  }
+
+  .dark {
+    --background: 20 15% 12%;
+    --foreground: 40 12% 89%;
+
+    --card: 20 15% 16%;
+    --card-foreground: 40 12% 89%;
+
+    --popover: 20 15% 16%;
+    --popover-foreground: 40 12% 89%;
+
+    --primary: 40 12% 89%;
+    --primary-foreground: 20 15% 18%;
+
+    --secondary: 26 10% 50%;
+    --secondary-foreground: 40 20% 98%;
+
+    --muted: 26 10% 30%;
+    --muted-foreground: 40 8% 70%;
+
+    --accent: 26 10% 30%;
+    --accent-foreground: 40 12% 89%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 40 20% 98%;
+
+    --border: 26 10% 30%;
+    --input: 26 10% 30%;
+    --ring: 40 12% 89%;
+
+    --sidebar-background: 20 15% 12%;
+    --sidebar-foreground: 40 12% 89%;
+    --sidebar-primary: 40 12% 89%;
+    --sidebar-primary-foreground: 20 15% 18%;
+    --sidebar-accent: 26 10% 30%;
+    --sidebar-accent-foreground: 40 12% 89%;
+    --sidebar-border: 26 10% 30%;
+    --sidebar-ring: 40 12% 89%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: var(--letter-spacing-heading);
+  }
+}
+
+@layer components {
+  .font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: var(--letter-spacing-heading);
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  /* Organic shape decorations */
+  .organic-shape {
+    position: absolute;
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    background: hsl(var(--serene-sand) / 0.2);
+    filter: blur(40px);
+  }
+
+  /* Monogram animation */
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Fade in animation */
+  @keyframes fade-up {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.8s ease-out forwards;
+  }
+
+  .animate-fade-up-delay-1 {
+    animation: fade-up 0.8s ease-out 0.1s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-up-delay-2 {
+    animation: fade-up 0.8s ease-out 0.2s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-up-delay-3 {
+    animation: fade-up 0.8s ease-out 0.3s forwards;
+    opacity: 0;
+  }
+
+  /* Slider thumb styling */
+  .slider-thumb {
+    @apply w-12 h-12 rounded-full bg-card border-4 border-primary shadow-elevated cursor-ew-resize flex items-center justify-center;
+  }
+}
+
+@layer utilities {
+  .text-deep-coffee {
+    color: hsl(var(--deep-coffee));
+  }
+
+  .text-cozy-brown {
+    color: hsl(var(--cozy-brown));
+  }
+
+  .text-serene-sand {
+    color: hsl(var(--serene-sand));
+  }
+
+  .bg-deep-coffee {
+    background-color: hsl(var(--deep-coffee));
+  }
+
+  .bg-cozy-brown {
+    background-color: hsl(var(--cozy-brown));
+  }
+
+  .bg-serene-sand {
+    background-color: hsl(var(--serene-sand));
+  }
+
+  .bg-soft-cream {
+    background-color: hsl(var(--soft-cream));
+  }
+
+  .bg-surface {
+    background-color: hsl(var(--surface));
+  }
+}
