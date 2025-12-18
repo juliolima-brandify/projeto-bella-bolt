@@ -125,6 +125,32 @@ export function VisionBodyApp() {
         throw new Error("Erro ao salvar seus dados. Por favor, tente novamente.");
       }
 
+      // Handle image transformation or skip if no photo
+      let transformedImage = null;
+
+      if (uploadedImage && !skippedPhoto) {
+        try {
+          const { data, error } = await supabase.functions.invoke("generate-transformation", {
+            body: {
+              imageBase64: uploadedImage,
+              currentWeight: weight,
+              goalWeight: idealWeight,
+              height: height
+            }
+          });
+
+          if (error) {
+            console.error("Edge function error:", error);
+            // Continue without transformed image if error occurs
+          } else if (data?.transformedImage) {
+            transformedImage = data.transformedImage;
+          }
+        } catch (imgError) {
+          console.error("Image transformation error:", imgError);
+          // Continue without transformed image if error occurs
+        }
+      }
+
       // Navigate to result page with data
       navigate("/relatorio", {
         state: {
@@ -137,7 +163,7 @@ export function VisionBodyApp() {
           tmb: tmb,
           symptoms: formData.symptoms,
           originalImage: uploadedImage || null,
-          transformedImage: null,
+          transformedImage: transformedImage,
           hasPhoto: !skippedPhoto && !!uploadedImage
         }
       });
