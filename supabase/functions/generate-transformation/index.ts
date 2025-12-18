@@ -15,13 +15,11 @@ interface TransformationRequest {
   leadId?: string;
 }
 
-// Initialize Supabase client with service role for full access
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
-// Generate SHA-256 hash for cache key
 async function generateHash(data: string): Promise<string> {
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(data);
@@ -30,15 +28,126 @@ async function generateHash(data: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Convert base64 to blob for upload
-function base64ToBlob(base64: string): Blob {
-  const base64Data = base64.replace(/^data:image\/\w+;base64,/, "");
-  const binaryString = atob(base64Data);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
+async function getGoogleAccessToken(): Promise<string> {
+  const clientEmail = Deno.env.get("GOOGLE_CLOUD_CLIENT_EMAIL");
+  const privateKey = Deno.env.get("GOOGLE_CLOUD_PRIVATE_KEY");
+  
+  if (!clientEmail || !privateKey) {
+    throw new Error("Google Cloud credentials not configured");
   }
-  return new Blob([bytes], { type: "image/png" });
+
+  const header = {
+    alg: "RS256",
+    typ: "JWT",
+  };
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: clientEmail,
+    scope: "https://www.googleapis.com/auth/cloud-platform",
+    aud: "https://oauth2.googleapis.com/token",
+    exp: now + 3600,
+    iat: now,
+  };
+
+  const encodedHeader = btoa(JSON.stringify(header));
+  const encodedPayload = btoa(JSON.stringify(payload));
+  const unsignedToken = `${encodedHeader}.${encodedPayload}`;
+
+  const privateKeyData = privateKey.replace(/\\n/g, "\n");
+  const keyData = privateKeyData.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/);
+  
+  if (!keyData) {
+    throw new Error("Invalid private key format");
+  }
+
+  const pemContents = keyData[1].replace(/\s/g, "");
+  const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    binaryKey,
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      hash: "SHA-256",
+    },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    key,
+    new TextEncoder().encode(unsignedToken)
+  );
+
+  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)));
+  const jwt = `${unsignedToken}.${encodedSignature}`;
+
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+  });
+
+  if (!tokenResponse.ok) {
+    const error = await tokenResponse.text();
+    throw new Error(`Failed to get access token: ${error}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  return tokenData.access_token;
+}
+
+async function generateImageWithVertexAI(
+  prompt: string,
+  accessToken: string
+): Promise<string> {
+  const projectId = Deno.env.get("GOOGLE_CLOUD_PROJECT_ID");
+  const location = Deno.env.get("GOOGLE_CLOUD_LOCATION") || "us-central1";
+
+  if (!projectId) {
+    throw new Error("GOOGLE_CLOUD_PROJECT_ID not configured");
+  }
+
+  const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-001:predict`;
+
+  const requestBody = {
+    instances: [
+      {
+        prompt: prompt,
+      },
+    ],
+    parameters: {
+      sampleCount: 1,
+      aspectRatio: "1:1",
+      safetySetting: "block_some",
+      personGeneration: "allow_adult",
+    },
+  };
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Vertex AI API failed: ${error}`);
+  }
+
+  const result = await response.json();
+  const imageBase64 = result.predictions?.[0]?.bytesBase64Encoded;
+
+  if (!imageBase64) {
+    throw new Error("No image data returned from Vertex AI");
+  }
+
+  return imageBase64;
 }
 
 Deno.serve(async (req: Request) => {
@@ -73,10 +182,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Generate hash for cache lookup
     const imageHash = await generateHash(imageBase64);
 
-    // Check cache first
     const { data: cachedTransformation } = await supabase
       .from("image_transformations")
       .select("transformed_url")
@@ -87,7 +194,6 @@ Deno.serve(async (req: Request) => {
     if (cachedTransformation?.transformed_url) {
       console.log("Cache hit - returning cached transformation");
 
-      // Log successful cache hit
       if (leadId) {
         await supabase.from("transformation_logs").insert({
           lead_id: leadId,
@@ -108,64 +214,23 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // No cache - generate new transformation with OpenAI
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-
-    if (!openaiApiKey) {
-      throw new Error("OpenAI API key not configured");
-    }
-
     const weightDiff = currentWeight - goalWeight;
     const bmiCurrent = currentWeight / Math.pow(height / 100, 2);
     const bmiGoal = goalWeight / Math.pow(height / 100, 2);
 
-    // Optimized prompt for faster, natural results
-    const prompt = `Create a realistic body transformation showing weight loss of ${weightDiff.toFixed(1)}kg. Transform from BMI ${bmiCurrent.toFixed(1)} to BMI ${bmiGoal.toFixed(1)}. Show natural fat reduction, more defined features, healthier appearance. Keep same pose, clothing, background. Realistic, encouraging, natural-looking result.`;
+    const prompt = `A realistic before and after body transformation photo showing healthy weight loss of ${weightDiff.toFixed(1)}kg. The person starts at BMI ${bmiCurrent.toFixed(1)} and achieves BMI ${bmiGoal.toFixed(1)}. Show natural fat reduction, more defined muscle tone, improved posture, and a healthier, more energetic appearance. The person should look confident and happy with their transformation. Professional fitness photography style, natural lighting, motivational and inspiring.`;
 
-    // Call OpenAI DALL-E 3 API
-    const openaiResponse = await fetch(
-      "https://api.openai.com/v1/images/generations",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${openaiApiKey}`,
-        },
-        body: JSON.stringify({
-          model: "dall-e-3",
-          prompt: prompt,
-          n: 1,
-          size: "1024x1024",
-          quality: "standard",
-          response_format: "url",
-        }),
-        signal: AbortSignal.timeout(30000),
-      }
-    );
+    console.log("Generating access token...");
+    const accessToken = await getGoogleAccessToken();
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error("OpenAI API error:", errorText);
-      throw new Error(`OpenAI API failed: ${errorText}`);
-    }
+    console.log("Generating image with Vertex AI...");
+    const generatedImageBase64 = await generateImageWithVertexAI(prompt, accessToken);
 
-    const openaiResult = await openaiResponse.json();
-    const generatedImageUrl = openaiResult.data?.[0]?.url;
-
-    if (!generatedImageUrl) {
-      throw new Error("No image URL returned from OpenAI");
-    }
-
-    // Download the generated image
-    const imageResponse = await fetch(generatedImageUrl);
-    if (!imageResponse.ok) {
-      throw new Error("Failed to download generated image");
-    }
-
-    const imageBlob = await imageResponse.blob();
+    const imageBytes = Uint8Array.from(atob(generatedImageBase64), c => c.charCodeAt(0));
+    const imageBlob = new Blob([imageBytes], { type: "image/png" });
     const fileName = `${crypto.randomUUID()}.png`;
 
-    // Upload to Supabase Storage
+    console.log("Uploading to Supabase Storage...");
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("transformed-images")
       .upload(fileName, imageBlob, {
@@ -179,14 +244,12 @@ Deno.serve(async (req: Request) => {
       throw new Error(`Failed to upload image: ${uploadError.message}`);
     }
 
-    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from("transformed-images")
       .getPublicUrl(fileName);
 
     const transformedUrl = publicUrlData.publicUrl;
 
-    // Save to cache
     const { error: cacheError } = await supabase
       .from("image_transformations")
       .insert({
@@ -199,7 +262,6 @@ Deno.serve(async (req: Request) => {
       console.error("Cache insert error:", cacheError);
     }
 
-    // Log successful transformation
     if (leadId) {
       await supabase.from("transformation_logs").insert({
         lead_id: leadId,
@@ -221,7 +283,6 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("Error:", error);
 
-    // Log error
     if (leadId) {
       await supabase.from("transformation_logs").insert({
         lead_id: leadId,
