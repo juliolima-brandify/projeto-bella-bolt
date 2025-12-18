@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Lightbulb } from "lucide-react";
+import { ArrowRight, Lightbulb, Heart, Sparkles, Dna } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { OrganicShapes } from "./OrganicShapes";
-import logoBella from "@/assets/logo-bella.png";
+import { BrandHeader } from "./BrandHeader";
 import backgroundHero from "@/assets/background-hero.webp";
 import { ImageUpload } from "./ImageUpload";
 import { LoadingState } from "./LoadingState";
@@ -77,8 +77,13 @@ export function VisionBodyApp() {
     setIsModalOpen(false);
     try {
       const weight = Number(formData.weight);
-      const height = Number(formData.height);
+      let height = Number(formData.height);
       const age = Number(formData.age);
+
+      // Convert height from meters to cm if needed (if user entered 1.65 instead of 165)
+      if (height < 3) {
+        height = height * 100;
+      }
 
       // Calculate health metrics
       const bmiCurrent = calculateBMI(weight, height);
@@ -109,24 +114,32 @@ export function VisionBodyApp() {
         throw new Error("Erro ao salvar seus dados");
       }
 
-      // Call edge function for image transformation
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke("generate-transformation", {
-        body: {
-          imageBase64: uploadedImage,
-          currentWeight: weight,
-          goalWeight: idealWeight,
-          height: height
+      // Handle image transformation or skip if no photo
+      let transformedImage = null;
+
+      if (uploadedImage && !skippedPhoto) {
+        try {
+          const { data, error } = await supabase.functions.invoke("generate-transformation", {
+            body: {
+              imageBase64: uploadedImage,
+              currentWeight: weight,
+              goalWeight: idealWeight,
+              height: height
+            }
+          });
+
+          if (error) {
+            console.error("Edge function error:", error);
+            throw new Error("Erro ao gerar a transformação");
+          }
+
+          if (data?.transformedImage) {
+            transformedImage = data.transformedImage;
+          }
+        } catch (imgError) {
+          console.error("Image transformation error:", imgError);
+          // Continue without transformed image if error occurs
         }
-      });
-      if (error) {
-        console.error("Edge function error:", error);
-        throw new Error("Erro ao gerar a transformação");
-      }
-      if (!data?.transformedImage) {
-        throw new Error("Nenhuma imagem foi gerada");
       }
 
       // Navigate to result page with data
@@ -140,8 +153,9 @@ export function VisionBodyApp() {
           bmiCurrent: bmiCurrent,
           tmb: tmb,
           symptoms: formData.symptoms,
-          originalImage: uploadedImage,
-          transformedImage: data.transformedImage
+          originalImage: uploadedImage || null,
+          transformedImage: transformedImage,
+          hasPhoto: !skippedPhoto && !!uploadedImage
         }
       });
     } catch (error) {
@@ -176,7 +190,7 @@ export function VisionBodyApp() {
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header */}
         <header className="flex items-center justify-center p-6 md:p-8">
-          <img src={logoBella} alt="Dra. Izabella Brasão - Obesidade & Emagrecimento" className="h-8 md:h-10 object-contain" />
+          <BrandHeader />
         </header>
 
         {/* Hero + Form */}
@@ -212,7 +226,18 @@ export function VisionBodyApp() {
                     <Label htmlFor="height" className="text-sm font-medium text-primary">
                       Altura (cm)
                     </Label>
-                    <Input id="height" type="number" placeholder="Ex: 165" value={formData.height} onChange={e => handleFormChange("height", e.target.value)} className="h-12 rounded-xl border-serene-sand focus:border-primary bg-surface" />
+                    <Input
+                      id="height"
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 165"
+                      value={formData.height}
+                      onChange={e => handleFormChange("height", e.target.value)}
+                      className="h-12 rounded-xl border-serene-sand focus:border-primary bg-surface"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Em centímetros. Ex: 165 ou 1.65 (será convertido)
+                    </p>
                   </div>
                 </div>
 
@@ -220,7 +245,18 @@ export function VisionBodyApp() {
                   <Label htmlFor="weight" className="text-sm font-medium text-primary">
                     Peso atual (kg)
                   </Label>
-                  <Input id="weight" type="number" placeholder="Ex: 75" value={formData.weight} onChange={e => handleFormChange("weight", e.target.value)} className="h-12 rounded-xl border-serene-sand focus:border-primary bg-surface" />
+                  <Input
+                    id="weight"
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 75"
+                    value={formData.weight}
+                    onChange={e => handleFormChange("weight", e.target.value)}
+                    className="h-12 rounded-xl border-serene-sand focus:border-primary bg-surface"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Digite apenas números, sem vírgulas. Ex: 75 ou 75.5
+                  </p>
                 </div>
 
                 {/* Symptoms Selector */}
@@ -243,26 +279,25 @@ export function VisionBodyApp() {
               </div>
 
               <Button variant="brand" size="xl" className="w-full mt-8" onClick={handleOpenModal} disabled={!isFormValid}>
-                Ver meu relatório
+                Acessar o meu raio-x
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
 
             {/* Features */}
             <div className="grid grid-cols-3 gap-4 mt-8 animate-fade-up-delay-3">
-              {[{
-              icon: "🔬",
-              title: "Base Científica"
-            }, {
-              icon: "🤝",
-              title: "Acompanhamento"
-            }, {
-              icon: "✨",
-              title: "Autonomia"
-            }].map((feature, i) => <div key={i} className="text-center">
-                  <span className="text-2xl mb-2 block">{feature.icon}</span>
-                  <p className="text-xs text-muted-foreground">{feature.title}</p>
-                </div>)}
+              <div className="text-center">
+                <Heart className="w-8 h-8 mx-auto mb-2 text-[#8B6F47]" />
+                <p className="text-xs text-muted-foreground">Cuidado</p>
+              </div>
+              <div className="text-center">
+                <Sparkles className="w-8 h-8 mx-auto mb-2 text-[#D4AF37]" />
+                <p className="text-xs text-muted-foreground">Resultado</p>
+              </div>
+              <div className="text-center">
+                <Dna className="w-8 h-8 mx-auto mb-2 text-secondary" />
+                <p className="text-xs text-muted-foreground">Ciência</p>
+              </div>
             </div>
           </div>
         </main>

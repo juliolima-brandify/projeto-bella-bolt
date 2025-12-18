@@ -9,25 +9,27 @@ interface BMIReportProps {
 
 export function BMIReport({ weight, height, goalWeight, age }: BMIReportProps) {
   const heightInMeters = height / 100;
-  
+
   // Calculate BMI
   const bmiCurrent = weight / (heightInMeters * heightInMeters);
-  const bmiGoal = goalWeight / (heightInMeters * heightInMeters);
-  
-  // Calculate ideal weight using Devine formula for women
-  const heightInInches = height / 2.54;
-  const idealWeightDevine = 45.5 + 2.3 * ((heightInInches - 60) > 0 ? (heightInInches - 60) : 0);
-  
-  // WHO BMI classification
+  const bmiIdeal = 22; // Reference BMI for healthy weight
+  const idealWeight = bmiIdeal * (heightInMeters * heightInMeters);
+
+  // WHO BMI classification with more detailed levels
   const getBMIClassification = (bmi: number) => {
     if (bmi < 18.5) return { label: "Abaixo do peso", color: "text-amber-600" };
     if (bmi < 25) return { label: "Peso normal", color: "text-green-600" };
     if (bmi < 30) return { label: "Sobrepeso", color: "text-amber-600" };
-    return { label: "Obesidade", color: "text-red-600" };
+    if (bmi < 35) return { label: "Obesidade grau I", color: "text-orange-600" };
+    if (bmi < 40) return { label: "Obesidade grau II", color: "text-red-500" };
+    return { label: "Obesidade grau III", color: "text-red-700" };
   };
 
   const currentClassification = getBMIClassification(bmiCurrent);
-  const goalClassification = getBMIClassification(bmiGoal);
+
+  // Calculate healthy weight loss per week (0.5-1kg of fat per week)
+  const weeklyWeightLossMin = 0.5;
+  const weeklyWeightLossMax = 1.0;
 
   return (
     <div className="space-y-6">
@@ -47,42 +49,40 @@ export function BMIReport({ weight, height, goalWeight, age }: BMIReportProps) {
         <div className="bg-card rounded-2xl p-5 shadow-soft">
           <div className="flex items-center gap-2 mb-3">
             <Target className="w-5 h-5 text-secondary" />
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">IMC Meta</span>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">IMC Ideal</span>
           </div>
-          <p className="text-3xl font-heading text-primary">{bmiGoal.toFixed(1)}</p>
-          <p className={`text-sm font-medium ${goalClassification.color}`}>
-            {goalClassification.label}
+          <p className="text-3xl font-heading text-primary">{bmiIdeal.toFixed(1)}</p>
+          <p className="text-sm font-medium text-green-600">
+            Faixa saudável
           </p>
         </div>
       </div>
 
-      {/* Weight Summary */}
+      {/* Healthy Weight Loss Information */}
       <div className="bg-card rounded-2xl p-6 shadow-soft">
         <div className="flex items-center gap-2 mb-4">
           <TrendingDown className="w-5 h-5 text-secondary" />
-          <span className="font-heading text-lg text-primary">Análise de Peso</span>
-        </div>
-        
-        <div className="grid grid-cols-3 gap-4 text-center mb-6">
-          <div>
-            <p className="text-2xl font-heading text-primary">{weight} kg</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Atual</p>
-          </div>
-          <div className="border-x border-serene-sand/50">
-            <p className="text-2xl font-heading text-primary">{goalWeight} kg</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Meta</p>
-          </div>
-          <div>
-            <p className="text-2xl font-heading text-primary">{Math.round(idealWeightDevine)} kg</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Ideal*</p>
-          </div>
+          <span className="font-heading text-lg text-primary">Emagrecimento Saudável</span>
         </div>
 
-        <div className="bg-serene-sand/20 rounded-xl p-4">
+        <div className="bg-serene-sand/20 rounded-xl p-4 mb-4">
+          <p className="text-sm text-secondary leading-relaxed mb-3">
+            Considerando sua altura de <strong>{height} cm</strong> e idade de <strong>{age} anos</strong>,
+            seu IMC atual é <strong>{bmiCurrent.toFixed(1)}</strong> ({currentClassification.label}).
+          </p>
           <p className="text-sm text-secondary leading-relaxed">
-            Considerando sua altura de <strong>{height} cm</strong> e idade de <strong>{age} anos</strong>, 
-            sua meta de peso de <strong>{goalWeight} kg</strong> resultaria em um IMC de <strong>{bmiGoal.toFixed(1)}</strong>, 
-            que está {bmiGoal >= 18.5 && bmiGoal < 25 ? "dentro" : "fora"} da faixa considerada saudável pela OMS (18,5 - 24,9).
+            Um peso próximo a <strong>{Math.round(idealWeight)} kg</strong> resultaria em um IMC de <strong>{bmiIdeal}</strong>,
+            considerado ideal pela OMS (faixa saudável: 18,5 - 24,9).
+          </p>
+        </div>
+
+        <div className="bg-green-50 border-l-4 border-green-500 rounded-xl p-4">
+          <h4 className="font-medium text-primary mb-2">Recomendação de Emagrecimento Saudável:</h4>
+          <p className="text-sm text-secondary mb-2">
+            <strong>{weeklyWeightLossMin}-{weeklyWeightLossMax}kg por semana (de GORDURA)</strong>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Esta é a taxa recomendada para perda de gordura saudável e sustentável, preservando massa muscular e saúde metabólica.
           </p>
         </div>
       </div>

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, Calendar, Download, CheckCircle, Columns, Square } from "lucide-react";
+import { ChevronDown, Download, CheckCircle, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoBella from "@/assets/logo-bella.png";
+import { BrandHeader } from "@/components/BrandHeader";
 import { OrganicShapes } from "@/components/OrganicShapes";
 import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
 import { BMIReport } from "@/components/BMIReport";
 import { VideoEmbed } from "@/components/VideoEmbed";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { WhatsAppPopup } from "@/components/WhatsAppPopup";
 import { SYMPTOM_ORIENTATIONS, getBMIClassification } from "@/lib/health-calculations";
 
 interface ReportData {
@@ -18,18 +20,18 @@ interface ReportData {
   bmiCurrent: number;
   tmb: number;
   symptoms: string[];
-  originalImage: string;
-  transformedImage: string;
+  originalImage: string | null;
+  transformedImage: string | null;
+  hasPhoto?: boolean;
 }
-
-type ViewMode = "slider" | "side-by-side" | "separate";
 
 export default function Relatorio() {
   const location = useLocation();
   const navigate = useNavigate();
   const aulaRef = useRef<HTMLDivElement>(null);
   const [showConfetti, setShowConfetti] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>("slider");
+  const [showWhatsAppButton, setShowWhatsAppButton] = useState(false);
+  const [videoWatchTime, setVideoWatchTime] = useState(0);
 
   // Get data from navigation state
   const reportData = location.state as ReportData | null;
@@ -38,6 +40,22 @@ export default function Relatorio() {
     // Hide confetti after a few seconds
     const timer = setTimeout(() => setShowConfetti(false), 3000);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Show WhatsApp button after 3 minutes of viewing time
+    const timer = setInterval(() => {
+      setVideoWatchTime(prev => {
+        const newTime = prev + 1;
+        if (newTime >= 180) { // 3 minutes = 180 seconds
+          setShowWhatsAppButton(true);
+          clearInterval(timer);
+        }
+        return newTime;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   // Redirect if no data
@@ -64,13 +82,16 @@ export default function Relatorio() {
   };
 
   const handleDownload = () => {
+    if (!reportData.transformedImage) return;
     const link = document.createElement("a");
     link.href = reportData.transformedImage;
-    link.download = `vision-body-${reportData.name.split(" ")[0]}.png`;
+    link.download = `raio-x-${reportData.name.split(" ")[0]}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
+  const hasPhoto = reportData.hasPhoto && reportData.originalImage && reportData.transformedImage;
 
   const bmiClassification = getBMIClassification(reportData.bmiCurrent);
   const selectedSymptoms = reportData.symptoms || [];
@@ -86,11 +107,7 @@ export default function Relatorio() {
             onClick={() => navigate("/")}
             className="hover:opacity-80 transition-opacity"
           >
-            <img 
-              src={logoBella} 
-              alt="Dra. Izabella Brasão - Obesidade & Emagrecimento" 
-              className="h-8 md:h-10 object-contain"
-            />
+            <BrandHeader />
           </button>
         </header>
 
@@ -138,52 +155,16 @@ export default function Relatorio() {
           </div>
         </section>
 
-        {/* Image Comparison Section */}
-        <section className="px-6 pb-12">
-          <div className="max-w-3xl mx-auto">
-            {/* View Mode Toggle */}
-            <div className="flex justify-center gap-2 mb-6 animate-fade-up-delay-2">
-              <Button
-                variant={viewMode === "slider" ? "brand" : "brand-outline"}
-                size="sm"
-                onClick={() => setViewMode("slider")}
-              >
-                Comparar
-              </Button>
-              <Button
-                variant={viewMode === "side-by-side" ? "brand" : "brand-outline"}
-                size="sm"
-                onClick={() => setViewMode("side-by-side")}
-              >
-                <Columns className="w-4 h-4 mr-1" />
-                Lado a lado
-              </Button>
-              <Button
-                variant={viewMode === "separate" ? "brand" : "brand-outline"}
-                size="sm"
-                onClick={() => setViewMode("separate")}
-              >
-                <Square className="w-4 h-4 mr-1" />
-                Separadas
-              </Button>
-            </div>
-
-            {/* Image Display based on view mode */}
-            <div className="animate-fade-up-delay-2">
-              {viewMode === "slider" && (
-                <BeforeAfterSlider
-                  beforeImage={reportData.originalImage}
-                  afterImage={reportData.transformedImage}
-                  beforeLabel={`IMC ${reportData.bmiCurrent.toFixed(1)}`}
-                  afterLabel="IMC 22"
-                />
-              )}
-
-              {viewMode === "side-by-side" && (
+        {/* Image Comparison Section - Only show if photo exists */}
+        {hasPhoto && (
+          <section className="px-6 pb-12">
+            <div className="max-w-3xl mx-auto">
+              {/* Side by side view only */}
+              <div className="animate-fade-up-delay-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="relative">
                     <img
-                      src={reportData.originalImage}
+                      src={reportData.originalImage!}
                       alt="Foto atual"
                       className="w-full rounded-2xl shadow-soft object-cover aspect-[3/4]"
                     />
@@ -193,7 +174,7 @@ export default function Relatorio() {
                   </div>
                   <div className="relative">
                     <img
-                      src={reportData.transformedImage}
+                      src={reportData.transformedImage!}
                       alt="Projeção ideal"
                       className="w-full rounded-2xl shadow-soft object-cover aspect-[3/4]"
                     />
@@ -202,32 +183,16 @@ export default function Relatorio() {
                     </div>
                   </div>
                 </div>
-              )}
-
-              {viewMode === "separate" && (
-                <div className="space-y-6">
-                  <div className="relative">
-                    <p className="text-sm font-medium text-primary mb-2 text-center">Atual - IMC {reportData.bmiCurrent.toFixed(1)} ({bmiClassification.label})</p>
-                    <img
-                      src={reportData.originalImage}
-                      alt="Foto atual"
-                      className="w-full max-w-md mx-auto rounded-2xl shadow-soft object-cover aspect-[3/4]"
-                    />
-                  </div>
-                  <div className="relative">
-                    <p className="text-sm font-medium text-primary mb-2 text-center">Projeção - IMC 22 (Peso ideal)</p>
-                    <img
-                      src={reportData.transformedImage}
-                      alt="Projeção ideal"
-                      className="w-full max-w-md mx-auto rounded-2xl shadow-soft object-cover aspect-[3/4]"
-                    />
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
+          </section>
+        )}
 
+        {/* BMI and Data Section - Always show */}
+        <section className="px-6 pb-12">
+          <div className="max-w-3xl mx-auto">
             {/* BMI Report */}
-            <div className="mt-8 animate-fade-up-delay-3">
+            <div className="mb-8 animate-fade-up-delay-3">
               <BMIReport
                 weight={reportData.weight}
                 height={reportData.height}
@@ -237,7 +202,7 @@ export default function Relatorio() {
             </div>
 
             {/* TMB Section */}
-            <div className="mt-6 p-6 bg-card rounded-2xl shadow-soft animate-fade-up-delay-3">
+            <div className="mb-6 p-6 bg-card rounded-2xl shadow-soft animate-fade-up-delay-3">
               <h3 className="font-heading text-lg text-primary mb-2">
                 Taxa Metabólica Basal (TMB)
               </h3>
@@ -245,14 +210,14 @@ export default function Relatorio() {
                 {Math.round(reportData.tmb)} kcal/dia
               </p>
               <p className="text-sm text-muted-foreground">
-                Quantidade de calorias que seu corpo precisa em repouso para manter funções vitais. 
+                Quantidade de calorias que seu corpo precisa em repouso para manter funções vitais.
                 Este valor é calculado pela fórmula de Mifflin-St Jeor.
               </p>
             </div>
 
             {/* Symptoms Orientations */}
             {selectedSymptoms.length > 0 && (
-              <div className="mt-6 animate-fade-up-delay-3">
+              <div className="mb-6 animate-fade-up-delay-3">
                 <h3 className="font-heading text-xl text-primary mb-4">
                   Orientações para seus sintomas
                 </h3>
@@ -279,7 +244,7 @@ export default function Relatorio() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mt-8">
+            <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 variant="brand"
                 size="xl"
@@ -289,15 +254,17 @@ export default function Relatorio() {
                 <ChevronDown className="w-4 h-4 mr-2" />
                 Assistir à Aula
               </Button>
-              <Button
-                variant="brand-outline"
-                size="xl"
-                className="flex-1"
-                onClick={handleDownload}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Salvar Imagem
-              </Button>
+              {hasPhoto && (
+                <Button
+                  variant="brand-outline"
+                  size="xl"
+                  className="flex-1"
+                  onClick={handleDownload}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Salvar Imagem
+                </Button>
+              )}
             </div>
           </div>
         </section>
@@ -310,10 +277,13 @@ export default function Relatorio() {
                 Aula Exclusiva
               </span>
               <h2 className="font-heading text-2xl md:text-3xl text-primary mb-4">
-                Entenda como alcançar seus objetivos
+                Aula exclusiva com a Dra Izabella Brasão
               </h2>
+              <h3 className="font-heading text-xl text-secondary mb-2">
+                Tudo o que você precisa antes de emagrecer
+              </h3>
               <p className="text-muted-foreground">
-                A Dra. Izabella preparou um conteúdo especial para você
+                Em alguns minutos você vai entender o que nunca compreendeu sobre o seu corpo
               </p>
             </div>
 
@@ -321,6 +291,13 @@ export default function Relatorio() {
               videoUrl=""
               title="Aula com Dra. Izabella Brasão"
             />
+
+            {/* WhatsApp CTA that appears after 3 minutes */}
+            {showWhatsAppButton && (
+              <div className="mt-8 text-center animate-fade-up">
+                <WhatsAppButton />
+              </div>
+            )}
 
             {/* Final CTA */}
             <div className="mt-12 text-center">
@@ -330,25 +307,55 @@ export default function Relatorio() {
               <p className="text-muted-foreground mb-6">
                 Construindo o seu futuro, com você.
               </p>
-              <Button
-                variant="brand"
-                size="xl"
-                onClick={() =>
-                  window.open(
-                    "https://wa.me/5511999999999?text=Olá! Fiz a simulação Vision Body e gostaria de agendar uma consulta.",
-                    "_blank"
-                  )
-                }
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                Agendar Consulta
-              </Button>
+              {!showWhatsAppButton && (
+                <WhatsAppButton />
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* About Section */}
+        <section className="px-6 py-16 bg-surface">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="font-heading text-3xl text-primary text-center mb-8">
+              Quem é a Dra. Izabella Brasão
+            </h2>
+
+            <div className="prose prose-lg max-w-none">
+              <p className="text-secondary leading-relaxed mb-6">
+                Uma mulher que acredita que nenhuma outra mulher deveria passar a vida em guerra com o próprio corpo.
+                Médica, esposa e cristã. Pós-graduanda em Obesidade e Emagrecimento pelo Hospital Israelita Albert Einstein
+                e em Endocrinologia e Ginecologia Clínica.
+              </p>
+
+              <p className="text-secondary leading-relaxed mb-6">
+                Atualmente cursa sua segunda graduação — Nutrição — porque acredita que entender o corpo humano é um
+                trabalho que não termina. Casada com Fernando Brasão, com quem vive seu primeiro e maior ministério: a família.
+              </p>
+
+              <p className="text-secondary leading-relaxed mb-6">
+                Apaixonada por ajudar mulheres a entenderem seus corpos sem culpa e sem terrorismo, criou o <strong>Método B</strong>
+                e a <strong>Comunidade O Lado B</strong> com um único propósito: mostrar o caminho certo para mulheres que cansaram
+                de tentar de tudo e estão prontas para se tornarem especialistas em si mesmas.
+              </p>
+
+              <div className="flex items-start gap-3 mt-8 p-6 bg-card rounded-2xl shadow-soft">
+                <MapPin className="w-6 h-6 text-secondary flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="font-heading text-lg text-primary mb-2">Clínica Lumini</h3>
+                  <p className="text-secondary">
+                    Av. Cel. Teodolino Pereira Araújo, 1015 - Centro
+                    <br />
+                    <strong>Araguari/MG</strong>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Footer Disclaimer */}
-        <footer className="px-6 py-8 text-center">
+        <footer className="px-6 py-8 text-center bg-serene-sand/10">
           <p className="text-xs text-muted-foreground max-w-xl mx-auto">
             Esta visualização é uma projeção ilustrativa baseada em inteligência
             artificial e não constitui diagnóstico médico. Resultados individuais
@@ -356,6 +363,9 @@ export default function Relatorio() {
           </p>
         </footer>
       </div>
+
+      {/* WhatsApp Popup */}
+      <WhatsAppPopup />
     </div>
   );
 }

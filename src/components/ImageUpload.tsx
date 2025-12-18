@@ -110,11 +110,11 @@ export function ImageUpload({ onImageSelect, onSkip, skipPhoto = false, preview,
               id="skip-photo"
               checked={skipPhoto}
               onCheckedChange={onSkip}
-              className="data-[state=checked]:bg-secondary"
+              className="data-[state=checked]:bg-green-600"
             />
-            <Label 
-              htmlFor="skip-photo" 
-              className="text-sm text-muted-foreground cursor-pointer"
+            <Label
+              htmlFor="skip-photo"
+              className={`text-sm cursor-pointer transition-colors ${skipPhoto ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}
             >
               Prosseguir sem foto
             </Label>

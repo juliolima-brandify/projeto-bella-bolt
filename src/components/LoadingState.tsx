@@ -7,11 +7,13 @@ interface LoadingStateProps {
 export function LoadingState({ message = "Analisando com base científica..." }: LoadingStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-8">
-      <img 
-        src={logoMonogram} 
-        alt="Bella" 
-        className="w-24 h-24 mb-8 animate-pulse"
-      />
+      <div className="w-32 h-32 mb-8 animate-pulse flex items-center justify-center">
+        <img
+          src={logoMonogram}
+          alt="Bella"
+          className="w-full h-full object-contain"
+        />
+      </div>
       
       <p className="font-heading text-xl text-primary text-center mb-2">
         {message}
