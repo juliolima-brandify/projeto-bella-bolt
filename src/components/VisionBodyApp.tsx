@@ -287,9 +287,6 @@ export function VisionBodyApp() {
                   setUploadedFile(null);
                   setSkippedPhoto(false);
                 }} />
-                  {!skippedPhoto && !uploadedImage && <p className="text-xs text-muted-foreground text-center">
-                      Use roupas leves, fundo neutro e boa iluminação
-                    </p>}
                 </div>
               </div>
 
