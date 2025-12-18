@@ -169,30 +169,57 @@ export default function Relatorio() {
         {/* Image Comparison Section - Only show if photo exists */}
         {hasPhoto && (
           <section className="px-6 pb-12">
-            <div className="max-w-3xl mx-auto">
-              {/* Side by side view only */}
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-8">
+                <h2 className="font-heading text-2xl md:text-3xl text-primary mb-3">
+                  Sua Jornada de Transformação
+                </h2>
+                <p className="text-muted-foreground">
+                  Veja o potencial do seu corpo ao alcançar seu peso ideal
+                </p>
+              </div>
+
               <div className="animate-fade-up-delay-2">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="relative">
-                    <img
-                      src={reportData.originalImage!}
-                      alt="Foto atual"
-                      className="w-full rounded-2xl shadow-soft object-cover aspect-[3/4]"
-                    />
-                    <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur-sm text-sm font-medium text-primary">
-                      IMC {reportData.bmiCurrent.toFixed(1)}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                  <div className="relative group">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-4 py-1.5 rounded-full bg-serene-sand text-primary text-sm font-medium shadow-soft">
+                      Antes
+                    </div>
+                    <div className="relative overflow-hidden rounded-2xl shadow-soft">
+                      <img
+                        src={reportData.originalImage!}
+                        alt="Foto atual"
+                        className="w-full h-auto object-cover aspect-[3/4]"
+                      />
+                      <div className="absolute bottom-4 left-4 px-4 py-2 rounded-full bg-background/90 backdrop-blur-sm text-sm font-medium text-primary shadow-soft">
+                        IMC {reportData.bmiCurrent.toFixed(1)}
+                      </div>
                     </div>
                   </div>
-                  <div className="relative">
-                    <img
-                      src={reportData.transformedImage!}
-                      alt="Projeção ideal"
-                      className="w-full rounded-2xl shadow-soft object-cover aspect-[3/4]"
-                    />
-                    <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full bg-primary/90 backdrop-blur-sm text-sm font-medium text-primary-foreground">
-                      IMC 22
+
+                  <div className="relative group">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-4 py-1.5 rounded-full bg-secondary text-white text-sm font-medium shadow-soft">
+                      Depois
+                    </div>
+                    <div className="relative overflow-hidden rounded-2xl shadow-soft ring-2 ring-secondary/20">
+                      <img
+                        src={reportData.transformedImage!}
+                        alt="Projeção ideal"
+                        className="w-full h-auto object-cover aspect-[3/4]"
+                      />
+                      <div className="absolute bottom-4 left-4 px-4 py-2 rounded-full bg-secondary/90 backdrop-blur-sm text-sm font-medium text-white shadow-soft">
+                        IMC 22
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="mt-6 p-4 bg-serene-sand/30 rounded-xl border border-serene-sand">
+                  <p className="text-sm text-secondary text-center leading-relaxed">
+                    <strong>Transformação gerada por IA:</strong> Esta imagem foi criada com inteligência artificial
+                    para demonstrar o potencial do seu corpo. Resultados reais exigem dedicação, dieta balanceada
+                    e acompanhamento profissional.
+                  </p>
                 </div>
               </div>
             </div>
@@ -404,12 +431,50 @@ export default function Relatorio() {
         </section>
 
         {/* Footer Disclaimer */}
-        <footer className="px-6 py-8 text-center bg-serene-sand/10">
-          <p className="text-xs text-muted-foreground max-w-xl mx-auto">
-            Esta visualização é uma projeção ilustrativa baseada em inteligência
-            artificial e não constitui diagnóstico médico. Resultados individuais
-            variam conforme fatores biológicos e acompanhamento profissional.
-          </p>
+        <footer className="px-6 py-12 bg-serene-sand/10">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-8">
+              <h3 className="font-heading text-xl text-primary mb-4">
+                Informações Importantes
+              </h3>
+            </div>
+
+            <div className="space-y-6">
+              <div className="p-6 bg-card rounded-xl shadow-soft">
+                <h4 className="font-medium text-primary mb-2">Sobre a Transformação por IA</h4>
+                <p className="text-sm text-secondary leading-relaxed">
+                  A imagem de transformação foi gerada por inteligência artificial (Gemini 2.0 Flash Exp)
+                  como uma projeção ilustrativa do potencial do seu corpo. Esta é uma ferramenta motivacional
+                  e não representa um resultado garantido ou personalizado.
+                </p>
+              </div>
+
+              <div className="p-6 bg-card rounded-xl shadow-soft">
+                <h4 className="font-medium text-primary mb-2">Como Alcançar Resultados Reais</h4>
+                <p className="text-sm text-secondary leading-relaxed">
+                  Transformações corporais reais exigem comprometimento com alimentação balanceada,
+                  prática regular de exercícios físicos, sono adequado e acompanhamento de profissionais
+                  qualificados (médico, nutricionista e educador físico). O tempo necessário varia
+                  de pessoa para pessoa.
+                </p>
+              </div>
+
+              <div className="p-6 bg-card rounded-xl shadow-soft">
+                <h4 className="font-medium text-primary mb-2">Aviso Médico</h4>
+                <p className="text-sm text-secondary leading-relaxed">
+                  Este relatório não constitui diagnóstico médico, prescrição de tratamento ou
+                  orientação nutricional. Consulte sempre um profissional de saúde antes de iniciar
+                  qualquer programa de perda de peso ou mudança significativa nos hábitos alimentares.
+                </p>
+              </div>
+
+              <div className="text-center pt-4">
+                <p className="text-xs text-muted-foreground">
+                  Clínica Lumini - Av. Cel. Teodolino Pereira Araújo, 1015 - Centro - Araguari/MG
+                </p>
+              </div>
+            </div>
+          </div>
         </footer>
       </div>
 
