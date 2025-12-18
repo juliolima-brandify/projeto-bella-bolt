@@ -340,13 +340,12 @@ export default function Relatorio() {
         {/* About Section */}
         <section className="px-6 py-16 bg-surface">
           <div className="max-w-6xl mx-auto">
-            <h2 className="font-heading text-3xl text-primary text-center mb-12">
-              Quem é a Dra. Izabella Brasão
-            </h2>
-
             <div className="grid md:grid-cols-2 gap-8 items-center">
               {/* Content Column */}
               <div className="space-y-6">
+                <h2 className="font-heading text-3xl text-primary mb-6">
+                  Quem é a Dra. Izabella Brasão
+                </h2>
                 <p className="text-secondary leading-relaxed">
                   Uma mulher que acredita que nenhuma outra mulher deveria passar a vida em guerra com o próprio corpo.
                   Médica, esposa e cristã. Pós-graduanda em Obesidade e Emagrecimento pelo Hospital Israelita Albert Einstein
