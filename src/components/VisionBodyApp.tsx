@@ -290,7 +290,7 @@ export function VisionBodyApp() {
                 </div>
               </div>
 
-              <Button variant="brand" size="xl" className="w-full mt-8" onClick={handleOpenModal} disabled={!isFormValid}>
+              <Button variant={isFormValid ? "brand-success" : "brand"} size="xl" className="w-full mt-8" onClick={handleOpenModal} disabled={!isFormValid}>
                 Acessar o meu raio-x
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>

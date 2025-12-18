@@ -26,6 +26,8 @@ const buttonVariants = cva(
           "border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground tracking-wide uppercase text-xs font-semibold py-4 px-8 transition-all duration-300",
         "brand-soft":
           "bg-accent/30 text-primary hover:bg-accent/50 tracking-wide",
+        "brand-success":
+          "bg-green-600 text-white shadow-soft hover:bg-green-700 hover:shadow-elevated hover:translate-y-[-2px] active:translate-y-0 tracking-wide uppercase text-xs font-semibold py-4 px-8",
       },
       size: {
         default: "h-10 px-4 py-2",

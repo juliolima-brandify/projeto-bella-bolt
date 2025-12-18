@@ -102,6 +102,13 @@ export function LeadCaptureModal({
     }
   };
 
+  const isFormValid =
+    formData.name.trim() !== "" &&
+    formData.email.trim() !== "" &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) &&
+    formData.whatsapp.replace(/\D/g, "").length >= 10 &&
+    formData.city.trim() !== "";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-white dark:bg-card border-2 border-serene-sand shadow-2xl opacity-100">
@@ -197,7 +204,7 @@ export function LeadCaptureModal({
 
           <Button
             type="submit"
-            variant="brand"
+            variant={isFormValid ? "brand-success" : "brand"}
             size="xl"
             className="w-full mt-6"
             disabled={isLoading}
