@@ -21,11 +21,11 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
-// Generate MD5 hash for cache key
+// Generate SHA-256 hash for cache key
 async function generateHash(data: string): Promise<string> {
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest("MD5", dataBuffer);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -136,10 +136,10 @@ Deno.serve(async (req: Request) => {
           prompt: prompt,
           n: 1,
           size: "1024x1024",
-          quality: "standard", // Faster than 'hd'
+          quality: "standard",
           response_format: "url",
         }),
-        signal: AbortSignal.timeout(30000), // 30 second timeout
+        signal: AbortSignal.timeout(30000),
       }
     );
 
@@ -197,7 +197,6 @@ Deno.serve(async (req: Request) => {
 
     if (cacheError) {
       console.error("Cache insert error:", cacheError);
-      // Continue anyway - transformation was successful
     }
 
     // Log successful transformation
