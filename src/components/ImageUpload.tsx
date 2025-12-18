@@ -64,7 +64,7 @@ export function ImageUpload({ onImageSelect, onSkip, skipPhoto = false, preview,
   }
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-4", className)}>
       {/* Hidden inputs */}
       <input
         ref={galleryInputRef}
@@ -82,43 +82,38 @@ export function ImageUpload({ onImageSelect, onSkip, skipPhoto = false, preview,
         onChange={handleFileSelect}
       />
 
-      {/* Three minimalist buttons */}
-      <div className="flex flex-col gap-3">
+      {/* Hierarchical action buttons */}
+      <div className="flex flex-col gap-4">
+        {/* Primary Action: Take Photo */}
+        <Button
+          type="button"
+          onClick={handleCameraClick}
+          className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all"
+        >
+          <Camera className="w-5 h-5 mr-3" />
+          Tirar foto
+        </Button>
+
+        {/* Secondary Action: Upload Photo */}
         <Button
           type="button"
           variant="outline"
           onClick={handleGalleryClick}
-          className="w-full h-14 border-serene-sand hover:border-secondary hover:bg-serene-sand/10 text-primary font-medium"
+          className="w-full h-14 border-2 border-neutral-300 hover:border-neutral-400 bg-transparent text-neutral-700 hover:bg-neutral-50 font-medium rounded-xl transition-all"
         >
-          <Upload className="w-5 h-5 mr-3 text-secondary" />
+          <Upload className="w-5 h-5 mr-3" />
           Upload de foto
         </Button>
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleCameraClick}
-          className="w-full h-14 border-serene-sand hover:border-secondary hover:bg-serene-sand/10 text-primary font-medium"
-        >
-          <Camera className="w-5 h-5 mr-3 text-secondary" />
-          Tirar foto
-        </Button>
-
+        {/* Escape Action: Skip Photo */}
         {onSkip && (
-          <div className="flex items-center justify-center gap-3 pt-2 px-4 py-4 bg-soft-cream rounded-xl border-2 border-serene-sand shadow-sm">
-            <Switch
-              id="skip-photo"
-              checked={skipPhoto}
-              onCheckedChange={onSkip}
-              className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-muted scale-125"
-            />
-            <Label
-              htmlFor="skip-photo"
-              className={`text-base cursor-pointer transition-colors font-medium ${skipPhoto ? 'text-green-600' : 'text-primary'}`}
-            >
-              Prosseguir sem foto
-            </Label>
-          </div>
+          <button
+            type="button"
+            onClick={() => onSkip(!skipPhoto)}
+            className="mt-2 text-neutral-500 hover:text-neutral-700 hover:underline font-normal text-base transition-all cursor-pointer bg-transparent border-none p-0"
+          >
+            Prosseguir sem foto
+          </button>
         )}
       </div>
     </div>
