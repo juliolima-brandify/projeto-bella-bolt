@@ -105,7 +105,7 @@ export function ImageUpload({ onImageSelect, onSkip, skipPhoto = false, preview,
         </Button>
 
         {onSkip && (
-          <div className="flex items-center justify-center gap-3 pt-2">
+          <div className="flex items-center justify-center gap-3 pt-2 px-4 py-3 bg-card rounded-xl border border-serene-sand">
             <Switch
               id="skip-photo"
               checked={skipPhoto}
@@ -114,7 +114,7 @@ export function ImageUpload({ onImageSelect, onSkip, skipPhoto = false, preview,
             />
             <Label
               htmlFor="skip-photo"
-              className={`text-sm cursor-pointer transition-colors ${skipPhoto ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}
+              className={`text-sm cursor-pointer transition-colors ${skipPhoto ? 'text-green-600 font-medium' : 'text-primary'}`}
             >
               Prosseguir sem foto
             </Label>

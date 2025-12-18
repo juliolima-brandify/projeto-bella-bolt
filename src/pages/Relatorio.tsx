@@ -10,6 +10,8 @@ import { VideoEmbed } from "@/components/VideoEmbed";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { WhatsAppPopup } from "@/components/WhatsAppPopup";
 import { SYMPTOM_ORIENTATIONS, getBMIClassification } from "@/lib/health-calculations";
+import { generatePDF } from "@/lib/pdf-generator";
+import { FileDown } from "lucide-react";
 
 interface ReportData {
   name: string;
@@ -81,7 +83,7 @@ export default function Relatorio() {
     aulaRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleDownload = () => {
+  const handleDownloadImage = () => {
     if (!reportData.transformedImage) return;
     const link = document.createElement("a");
     link.href = reportData.transformedImage;
@@ -91,7 +93,16 @@ export default function Relatorio() {
     document.body.removeChild(link);
   };
 
-  const hasPhoto = reportData.hasPhoto && reportData.originalImage && reportData.transformedImage;
+  const handleDownloadPDF = async () => {
+    try {
+      await generatePDF(reportData);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
+  };
+
+  // Check if photos exist (either through flag or by checking the image data)
+  const hasPhoto = (reportData.hasPhoto !== false) && reportData.originalImage && reportData.transformedImage;
 
   const bmiClassification = getBMIClassification(reportData.bmiCurrent);
   const selectedSymptoms = reportData.symptoms || [];
@@ -244,27 +255,39 @@ export default function Relatorio() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4">
               <Button
                 variant="brand"
                 size="xl"
-                className="flex-1"
-                onClick={scrollToAula}
+                className="w-full"
+                onClick={handleDownloadPDF}
               >
-                <ChevronDown className="w-4 h-4 mr-2" />
-                Assistir à Aula
+                <FileDown className="w-5 h-5 mr-2" />
+                Baixar Relatório Completo em PDF
               </Button>
-              {hasPhoto && (
+
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Button
                   variant="brand-outline"
                   size="xl"
                   className="flex-1"
-                  onClick={handleDownload}
+                  onClick={scrollToAula}
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Salvar Imagem
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  Assistir à Aula
                 </Button>
-              )}
+                {hasPhoto && (
+                  <Button
+                    variant="brand-outline"
+                    size="xl"
+                    className="flex-1"
+                    onClick={handleDownloadImage}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Salvar Imagem
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -316,37 +339,64 @@ export default function Relatorio() {
 
         {/* About Section */}
         <section className="px-6 py-16 bg-surface">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="font-heading text-3xl text-primary text-center mb-8">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="font-heading text-3xl text-primary text-center mb-12">
               Quem é a Dra. Izabella Brasão
             </h2>
 
-            <div className="prose prose-lg max-w-none">
-              <p className="text-secondary leading-relaxed mb-6">
-                Uma mulher que acredita que nenhuma outra mulher deveria passar a vida em guerra com o próprio corpo.
-                Médica, esposa e cristã. Pós-graduanda em Obesidade e Emagrecimento pelo Hospital Israelita Albert Einstein
-                e em Endocrinologia e Ginecologia Clínica.
-              </p>
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              {/* Content Column */}
+              <div className="space-y-6">
+                <p className="text-secondary leading-relaxed">
+                  Uma mulher que acredita que nenhuma outra mulher deveria passar a vida em guerra com o próprio corpo.
+                  Médica, esposa e cristã. Pós-graduanda em Obesidade e Emagrecimento pelo Hospital Israelita Albert Einstein
+                  e em Endocrinologia e Ginecologia Clínica.
+                </p>
 
-              <p className="text-secondary leading-relaxed mb-6">
-                Atualmente cursa sua segunda graduação — Nutrição — porque acredita que entender o corpo humano é um
-                trabalho que não termina. Casada com Fernando Brasão, com quem vive seu primeiro e maior ministério: a família.
-              </p>
+                <p className="text-secondary leading-relaxed">
+                  Atualmente cursa sua segunda graduação — Nutrição — porque acredita que entender o corpo humano é um
+                  trabalho que não termina. Casada com Fernando Brasão, com quem vive seu primeiro e maior ministério: a família.
+                </p>
 
-              <p className="text-secondary leading-relaxed mb-6">
-                Apaixonada por ajudar mulheres a entenderem seus corpos sem culpa e sem terrorismo, criou o <strong>Método B</strong>
-                e a <strong>Comunidade O Lado B</strong> com um único propósito: mostrar o caminho certo para mulheres que cansaram
-                de tentar de tudo e estão prontas para se tornarem especialistas em si mesmas.
-              </p>
+                <p className="text-secondary leading-relaxed">
+                  Apaixonada por ajudar mulheres a entenderem seus corpos sem culpa e sem terrorismo, criou o <strong>Método B</strong>
+                  e a <strong>Comunidade O Lado B</strong> com um único propósito: mostrar o caminho certo para mulheres que cansaram
+                  de tentar de tudo e estão prontas para se tornarem especialistas em si mesmas.
+                </p>
 
-              <div className="flex items-start gap-3 mt-8 p-6 bg-card rounded-2xl shadow-soft">
-                <MapPin className="w-6 h-6 text-secondary flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="font-heading text-lg text-primary mb-2">Clínica Lumini</h3>
-                  <p className="text-secondary">
-                    Av. Cel. Teodolino Pereira Araújo, 1015 - Centro
-                    <br />
-                    <strong>Araguari/MG</strong>
+                <div className="flex items-start gap-3 mt-8 p-6 bg-card rounded-2xl shadow-soft">
+                  <MapPin className="w-6 h-6 text-secondary flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-heading text-lg text-primary mb-2">Clínica Lumini</h3>
+                    <p className="text-secondary">
+                      Av. Cel. Teodolino Pereira Araújo, 1015 - Centro
+                      <br />
+                      <strong>Araguari/MG</strong>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Image Placeholder Column */}
+              <div className="relative aspect-[3/4] bg-serene-sand/30 rounded-2xl overflow-hidden shadow-soft flex items-center justify-center">
+                <div className="text-center p-8">
+                  <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-serene-sand/50 flex items-center justify-center">
+                    <svg
+                      className="w-12 h-12 text-secondary"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Placeholder para foto da<br />Dra. Izabella Brasão
                   </p>
                 </div>
               </div>

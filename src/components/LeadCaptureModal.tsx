@@ -101,7 +101,7 @@ export function LeadCaptureModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card border-serene-sand/30">
+      <DialogContent className="sm:max-w-md !bg-card border-2 border-serene-sand shadow-2xl">
         <DialogHeader>
           <DialogTitle className="font-heading text-2xl text-primary text-center">
             Quase lá!
