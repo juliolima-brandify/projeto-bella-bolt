@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-const GOOGLE_AI_API_KEY = "AIzaSyBXTINQ9Y0f6x_9Lje1lxxor5uTVaQe7dI";
+import { createClient } from "npm:@supabase/supabase-js@2.87.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +12,33 @@ interface TransformationRequest {
   currentWeight: number;
   goalWeight: number;
   height: number;
+  leadId?: string;
+}
+
+// Initialize Supabase client with service role for full access
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+);
+
+// Generate MD5 hash for cache key
+async function generateHash(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest("MD5", dataBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Convert base64 to blob for upload
+function base64ToBlob(base64: string): Blob {
+  const base64Data = base64.replace(/^data:image\/\w+;base64,/, "");
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: "image/png" });
 }
 
 Deno.serve(async (req: Request) => {
@@ -23,8 +49,19 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  const startTime = Date.now();
+  let leadId: string | null = null;
+
   try {
-    const { imageBase64, currentWeight, goalWeight, height }: TransformationRequest = await req.json();
+    const {
+      imageBase64,
+      currentWeight,
+      goalWeight,
+      height,
+      leadId: requestLeadId,
+    }: TransformationRequest = await req.json();
+
+    leadId = requestLeadId || null;
 
     if (!imageBase64 || !currentWeight || !goalWeight || !height) {
       return new Response(
@@ -36,73 +73,146 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const weightDiff = currentWeight - goalWeight;
-    const bmiCurrent = currentWeight / Math.pow(height / 100, 2);
-    const bmiGoal = goalWeight / Math.pow(height / 100, 2);
+    // Generate hash for cache lookup
+    const imageHash = await generateHash(imageBase64);
 
-    // Create a prompt for image transformation using Gemini
-    const prompt = `Transform this full-body photo to show a realistic visualization of the person after losing ${weightDiff.toFixed(1)}kg. Current weight: ${currentWeight}kg (BMI ${bmiCurrent.toFixed(1)}), Goal weight: ${goalWeight}kg (BMI ${bmiGoal.toFixed(1)}). Make subtle, natural changes focusing on: reduced body fat, more defined features, healthier appearance. Maintain the same pose, clothing, and background. Keep it realistic and encouraging.`;
+    // Check cache first
+    const { data: cachedTransformation } = await supabase
+      .from("image_transformations")
+      .select("transformed_url")
+      .eq("original_hash", imageHash)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
 
-    // Use Google Gemini API for image generation
-    // Note: This uses the Gemini API with vision capabilities
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_AI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-                {
-                  inline_data: {
-                    mime_type: "image/jpeg",
-                    data: imageBase64.replace(/^data:image\/\w+;base64,/, ""),
-                  },
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.4,
-            topK: 32,
-            topP: 1,
-            maxOutputTokens: 4096,
-          },
-        }),
+    if (cachedTransformation?.transformed_url) {
+      console.log("Cache hit - returning cached transformation");
+
+      // Log successful cache hit
+      if (leadId) {
+        await supabase.from("transformation_logs").insert({
+          lead_id: leadId,
+          status: "success",
+          processing_time_ms: Date.now() - startTime,
+        });
       }
-    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Google AI API error:", errorText);
       return new Response(
-        JSON.stringify({ error: "Failed to generate transformation", details: errorText }),
+        JSON.stringify({
+          transformedImage: cachedTransformation.transformed_url,
+          cached: true,
+        }),
         {
-          status: response.status,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    const result = await response.json();
+    // No cache - generate new transformation with OpenAI
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
 
-    // For now, Gemini doesn't generate images directly, it analyzes them
-    // We'll return the original image with a text description of changes
-    // In a production app, you'd want to use Imagen API or another service
-    const transformedImage = imageBase64; // Placeholder - keeping original for now
-    const analysis = result.candidates?.[0]?.content?.parts?.[0]?.text || "Analysis not available";
+    if (!openaiApiKey) {
+      throw new Error("OpenAI API key not configured");
+    }
+
+    const weightDiff = currentWeight - goalWeight;
+    const bmiCurrent = currentWeight / Math.pow(height / 100, 2);
+    const bmiGoal = goalWeight / Math.pow(height / 100, 2);
+
+    // Optimized prompt for faster, natural results
+    const prompt = `Create a realistic body transformation showing weight loss of ${weightDiff.toFixed(1)}kg. Transform from BMI ${bmiCurrent.toFixed(1)} to BMI ${bmiGoal.toFixed(1)}. Show natural fat reduction, more defined features, healthier appearance. Keep same pose, clothing, background. Realistic, encouraging, natural-looking result.`;
+
+    // Call OpenAI DALL-E 3 API
+    const openaiResponse = await fetch(
+      "https://api.openai.com/v1/images/generations",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: prompt,
+          n: 1,
+          size: "1024x1024",
+          quality: "standard", // Faster than 'hd'
+          response_format: "url",
+        }),
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      }
+    );
+
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error("OpenAI API error:", errorText);
+      throw new Error(`OpenAI API failed: ${errorText}`);
+    }
+
+    const openaiResult = await openaiResponse.json();
+    const generatedImageUrl = openaiResult.data?.[0]?.url;
+
+    if (!generatedImageUrl) {
+      throw new Error("No image URL returned from OpenAI");
+    }
+
+    // Download the generated image
+    const imageResponse = await fetch(generatedImageUrl);
+    if (!imageResponse.ok) {
+      throw new Error("Failed to download generated image");
+    }
+
+    const imageBlob = await imageResponse.blob();
+    const fileName = `${crypto.randomUUID()}.png`;
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("transformed-images")
+      .upload(fileName, imageBlob, {
+        contentType: "image/png",
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Storage upload error:", uploadError);
+      throw new Error(`Failed to upload image: ${uploadError.message}`);
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from("transformed-images")
+      .getPublicUrl(fileName);
+
+    const transformedUrl = publicUrlData.publicUrl;
+
+    // Save to cache
+    const { error: cacheError } = await supabase
+      .from("image_transformations")
+      .insert({
+        lead_id: leadId,
+        original_hash: imageHash,
+        transformed_url: transformedUrl,
+      });
+
+    if (cacheError) {
+      console.error("Cache insert error:", cacheError);
+      // Continue anyway - transformation was successful
+    }
+
+    // Log successful transformation
+    if (leadId) {
+      await supabase.from("transformation_logs").insert({
+        lead_id: leadId,
+        status: "success",
+        processing_time_ms: Date.now() - startTime,
+      });
+    }
 
     return new Response(
       JSON.stringify({
-        transformedImage,
-        analysis,
-        message: "Note: Currently using Gemini for analysis. For actual image transformation, Imagen API integration is needed.",
+        transformedImage: transformedUrl,
+        cached: false,
       }),
       {
         status: 200,
@@ -111,8 +221,22 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("Error:", error);
+
+    // Log error
+    if (leadId) {
+      await supabase.from("transformation_logs").insert({
+        lead_id: leadId,
+        status: "error",
+        error_message: error instanceof Error ? error.message : "Unknown error",
+        processing_time_ms: Date.now() - startTime,
+      });
+    }
+
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+        fallback: true,
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

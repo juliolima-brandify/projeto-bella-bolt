@@ -103,6 +103,7 @@ export function VisionBodyApp() {
 
       // Save lead to database
       const {
+        data: leadResult,
         error: insertError
       } = await supabase.from("leads").insert({
         name: leadData.name,
@@ -119,11 +120,14 @@ export function VisionBodyApp() {
         tmb: tmb,
         symptoms: formData.symptoms,
         gender: "feminino"
-      });
+      }).select().single();
+
       if (insertError) {
         console.error("Error saving lead:", insertError);
         throw new Error("Erro ao salvar seus dados. Por favor, tente novamente.");
       }
+
+      const leadId = leadResult?.id;
 
       // Handle image transformation or skip if no photo
       let transformedImage = null;
@@ -135,7 +139,8 @@ export function VisionBodyApp() {
               imageBase64: uploadedImage,
               currentWeight: weight,
               goalWeight: idealWeight,
-              height: height
+              height: height,
+              leadId: leadId
             }
           });
 
